@@ -4,7 +4,7 @@
     <img alt="Microchip Logo." src="images/microchip_logo_black_red.png">
 </picture> 
 
-## %repoDescritpion%
+## lvmc dspic33ck256mp508 optical encoder based foc
 
 Board Image if any.
 
