@@ -4,21 +4,21 @@
    "content":{
       "metaDataVersion":"1.3.0",
       "name":"com.microchip.mplabx.project.lvmc-dspic33ck256mp508-optical-encoder-based-foc",
-      "version":"x.x.x",
-      "displayName":"xxxxxxxxxxxxxxx",
+      "version":"1.0.0",
+      "displayName":"Optical Encoder Based FOC dsPIC33CK256MP508 LVMC",
       "projectName":"lvmc-dspic33ck256mp508-optical-encoder-based-foc",
-      "shortDescription":"xxxxxxxxxxxxxxx",
+      "shortDescription":"Optical Encoder Based FOC for PMSM using dsPIC33CK LVMC Board",
       "ide":{
          "name":"MPLABX",
-         "semverRange":">=5.40.0"
+         "semverRange":">=6.15"
       },
       "compiler":{
          "name":"XC16",
-         "semverRange":"^1.50.0"
+         "semverRange":"^2.10"
       },
       "dfp":{
-         "name":"xxxxxxxxxxxxxxx",
-         "semverRange":">=x.x.x"
+         "name":"dsPIC33CK-MP_DFP",
+         "semverRange":">=1.12.354"
       },
 	  "configurator": {
          "name": "MCC",
@@ -30,13 +30,16 @@
          "content":{
             "metaDataVersion":"1.0.0",
             "category":"com.microchip.device",
-            "name":"xxxxxxxxxxxxxxx",
+            "name":"dsPIC33CK256MP508",
             "versionRange":"*"
          }
       },
       "keywords":[
-         "GPIO",
-         "UART"
+         "Motor Control",
+         "PMSM",
+         "dsPIC",
+         "ADC",
+         "PWM"
       ]
    }
 }
