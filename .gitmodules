@@ -1,0 +1,6 @@
+[submodule "lvmc-dspic33ck256mp508-encoder-foc/library/library-motor"]
+	path = lvmc-dspic33ck256mp508-encoder-foc/library/library-motor
+	url = https://github.com/microchip-pic-avr-solutions/library-motor
+[submodule "lvmc-dspic33ck256mp508-encoder-foc/library/library-x2cscope"]
+	path = lvmc-dspic33ck256mp508-encoder-foc/library/library-x2cscope
+	url = https://github.com/microchip-pic-avr-solutions/library-x2cscope
