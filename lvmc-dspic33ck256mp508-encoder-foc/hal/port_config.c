@@ -262,5 +262,7 @@ void MapGPIOHWFunction(void)
     _U1RXR = 78;
     _RP77R = 0b000001;
     
-    
+    //Encoder Pins:
+    _QEIA1R = 60;   // RC12
+    _QEIB1R = 61;   // RC13
 }

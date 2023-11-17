@@ -1,11 +1,12 @@
 /*******************************************************************************
-  ADC Configuration Routine Header File
+   Header File for High-Resolution PWM with Fine Edge Placement Configuration
 
   File Name:
-    adc.h
+    pwm.h
 
   Summary:
-    This header file lists ADC Configuration related functions and definitions
+    This header file lists routines to configure High-Resolution PWM with Fine 
+    Edge Placement 
 
   Description:
     Definitions in the file are for dsPIC33CK256MP508 on Motor Control 
@@ -46,8 +47,8 @@
 * certify, or support the code.
 *
 *******************************************************************************/
-#ifndef _ADC_H
-#define _ADC_H
+#ifndef _QEI_H
+#define	_QEI_H
 
 #ifdef __cplusplus  // Provide C++ Compatability
     extern "C" {
@@ -59,49 +60,42 @@
 // *****************************************************************************
 #include <xc.h>
 #include <stdint.h>
-#include "userparms.h"
+#include "clock.h"
 // *****************************************************************************
 // *****************************************************************************
 // Section: Constants
 // *****************************************************************************
 // *****************************************************************************
-// ADC MODULE Related Definitions
-#define ADCBUF_INV_A_IPHASE1    -ADCBUF0
-#define ADCBUF_INV_A_IPHASE2    -ADCBUF1
-#define ADCBUF_INV_A_IBUS       ADCBUF4
-        
-#define ADCBUF_SPEED_REF_A      ADCBUF11
-#define ADCBUF_VBUS_A           ADCBUF15
-#define ADCBUF_MOSFET_TEMP_A    ADCBUF12
+typedef struct
+{
+    /*Encoder Theta*/
+    int16_t Theta;
+    /*Encoder Speed*/
+    int16_t Speed;
+    /*Position Count Measurement*/
+    int16_t positionCount;
+    /*Delay counter for Speed Measurement*/
+    int16_t velocityDelayCounter;
+    /*Velocity Count Measurement*/
+    int16_t velocityCount;
+} ENCODER;
 
-/* This defines number of current offset samples for averaging 
- * If the 2^n samples are considered specify n(in this case 2^7(= 128)=> 7*/
-#define  CURRENT_OFFSET_SAMPLE_SCALER         7
-#ifdef SINGLE_SHUNT       
-#define EnableADCInterrupt()   _ADCAN4IE = 1
-#define DisableADCInterrupt()  _ADCAN4IE = 0
-#define ClearADCIF()           _ADCAN4IF = 0
-#define ClearADCIF_ReadADCBUF() ADCBUF4
-        
-#define _ADCInterrupt _ADCAN4Interrupt  
-#else
-#define EnableADCInterrupt()   _ADCAN1IE = 1
-#define DisableADCInterrupt()  _ADCAN1IE = 0
-#define ClearADCIF()           _ADCAN1IF = 0
-#define ClearADCIF_ReadADCBUF() ADCBUF1
-        
-#define _ADCInterrupt _ADCAN1Interrupt  
-#endif
-        
+extern ENCODER encoder;
 // *****************************************************************************
 // *****************************************************************************
 // Section: Interface Routines
 // *****************************************************************************
 // *****************************************************************************
-void InitializeADCs(void);
+extern void InitQEI(void);
+extern int32_t getQEICount(void);
+extern void clearQEICount(void);
+extern int32_t getQEIVelocity(void);
+
+void calcEncoderAngle(void);
+void calcEncoderSpeed(void);
 
 #ifdef __cplusplus  // Provide C++ Compatibility
     }
 #endif
-#endif      // end of ADC_H
+#endif      // end of QEI_H
 

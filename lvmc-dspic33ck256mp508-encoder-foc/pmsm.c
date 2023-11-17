@@ -43,12 +43,11 @@
 #include "userparms.h"
 
 #include "control.h"   
-#include "estim.h"
-#include "fdweak.h"
 
 #include "clock.h"
 #include "pwm.h"
 #include "adc.h"
+#include "qei.h"
 #include "port_config.h"
 #include "delay.h"
 #include "board_service.h"
@@ -61,8 +60,9 @@ volatile UGF_T uGF;
 
 CTRL_PARM_T ctrlParm;
 MOTOR_STARTUP_DATA_T motorStartUpData;
+ENCODER encoder;
 
-volatile int16_t thetaElectrical = 0,thetaElectricalOpenLoop = 0;
+volatile int16_t thetaElectrical = 0;
 uint16_t pwmPeriod;
 
 MC_ALPHABETA_T valphabeta,ialphabeta;
@@ -82,9 +82,6 @@ volatile uint16_t adcDataBuffer;
 MCAPP_MEASURE_T measureInputs;
 
 /** Definitions */
-/* Open loop angle scaling Constant - This corresponds to 1024(2^10)
-   Scaling down motorStartUpData.startupRamp to thetaElectricalOpenLoop   */
-#define STARTUPRAMP_THETA_OPENLOOP_SCALER       10 
 /* Fraction of dc link voltage(expressed as a squared amplitude) to set 
  * the limit for current controllers PI Output */
 #define MAX_VOLTAGE_VECTOR                      0.98
@@ -154,15 +151,6 @@ int main ( void )
                 }
 
             }
-            // Monitoring for Button 2 press in LVMC
-            if (IsPressed_Button2())
-            {
-                if ((uGF.bits.RunMotor == 1) && (uGF.bits.OpenLoop == 0))
-                {
-                    uGF.bits.ChangeSpeed = !uGF.bits.ChangeSpeed;
-                }
-            }
-
         }
 
     } // End of Main loop
@@ -221,17 +209,11 @@ void ResetParmeters(void)
     ctrlParm.qVelRef = 0;
     /* Restart in open loop */
     uGF.bits.OpenLoop = 1;
-    /* Change speed */
-    uGF.bits.ChangeSpeed = 0;
     /* Change mode */
     uGF.bits.ChangeMode = 1;
     
     /* Initialize PI control parameters */
-    InitControlParameters();        
-    /* Initialize estimator parameters */
-    InitEstimParm();
-    /* Initialize flux weakening parameters */
-    InitFWParams();
+    InitControlParameters();
     /* Initialize measurement parameters */
     MCAPP_MeasureCurrentInit(&measureInputs);
 
@@ -291,8 +273,8 @@ void DoControl( void )
                 motorStartUpData.tuningDelayRampup = 0;
             #endif
         }
-
         /* PI control for D */
+        ctrlParm.qVdRef = D_CURRENT_REF_OPENLOOP;
         piInputId.inMeasure = idq.d;
         piInputId.inReference  = ctrlParm.qVdRef;
         MC_ControllerPIUpdate_Assembly(piInputId.inReference,
@@ -310,13 +292,10 @@ void DoControl( void )
         piInputIq.piState.outMax = _Q15sqrt (temp_qref_pow_q15);
         piInputIq.piState.outMin = - piInputIq.piState.outMax;    
         /* PI control for Q */
-        /* Speed reference */
-        ctrlParm.qVelRef = Q_CURRENT_REF_OPENLOOP;
         /* q current reference is equal to the velocity reference 
          while d current reference is equal to 0
         for maximum startup torque, set the q current to maximum acceptable 
         value represents the maximum peak value */
-        ctrlParm.qVqRef = ctrlParm.qVelRef;
         piInputIq.inMeasure = idq.q;
         piInputIq.inReference = ctrlParm.qVqRef;
         MC_ControllerPIUpdate_Assembly(piInputIq.inReference,
@@ -329,28 +308,13 @@ void DoControl( void )
     else
     /* Closed Loop Vector Control */
     {
-        /* if change speed indication, double the speed */
-        if (uGF.bits.ChangeSpeed)
-        {
-            
-            /* Potentiometer value is scaled between NOMINALSPEED_ELECTR and 
-             * MAXIMUMSPEED_ELECTR to set the speed reference*/
-            ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,
-                    MAXIMUMSPEED_ELECTR-NOMINALSPEED_ELECTR)>>15)+
-                    NOMINALSPEED_ELECTR;  
+        /* Potentiometer value is scaled between ENDSPEED_ELECTR 
+         * and NOMINALSPEED_ELECTR to set the speed reference*/
 
-        }
-        else
-        {
-
-            /* Potentiometer value is scaled between ENDSPEED_ELECTR 
-             * and NOMINALSPEED_ELECTR to set the speed reference*/
+        ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,
+                NOMINALSPEED_ELECTR-ENDSPEED_ELECTR)>>15) +
+                ENDSPEED_ELECTR;  
             
-            ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,
-                    NOMINALSPEED_ELECTR-ENDSPEED_ELECTR)>>15) +
-                    ENDSPEED_ELECTR;  
-            
-        }
         if  (ctrlParm.speedRampCount < SPEEDREFRAMP_COUNT)
         {
            ctrlParm.speedRampCount++; 
@@ -412,7 +376,7 @@ void DoControl( void )
         /* If TORQUE MODE skip the speed controller */
         #ifndef	TORQUE_MODE
             /* Execute the velocity control loop */
-            piInputOmega.inMeasure = estimator.qVelEstim;
+            piInputOmega.inMeasure = encoder.Speed;
             piInputOmega.inReference = ctrlParm.qVelRef;
             MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
                                            piInputOmega.inMeasure,
@@ -422,12 +386,6 @@ void DoControl( void )
         #else
             ctrlParm.qVqRef = ctrlParm.qVelRef;
         #endif
-        
-        /* Flux weakening control - the actual speed is replaced 
-        with the reference speed for stability 
-        reference for d current component 
-        adapt the estimator parameters in concordance with the speed */
-        ctrlParm.qVdRef=FieldWeakening(_Q15abs(ctrlParm.qVelRef));
 
         /* PI control for D */
         piInputId.inMeasure = idq.d;
@@ -546,23 +504,13 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
             MC_TransformClarke_Assembly(&iabc,&ialphabeta);
             MC_TransformPark_Assembly(&ialphabeta,&sincosTheta,&idq);
 
-            /* Speed and field angle estimation */
-            Estim();
             /* Calculate control values */
             DoControl();
-            /* Calculate qAngle */
+            /* Calculate qAngle from Encoder*/
             CalculateParkAngle();
-            /* if open loop */
-            if (uGF.bits.OpenLoop == 1)
-            {
-                /* the angle is given by park parameter */
-                thetaElectrical = thetaElectricalOpenLoop;
-            }
-            else
-            {
-                /* if closed loop, angle generated by estimator */
-                thetaElectrical = estimator.qRho;
-            }
+            thetaElectrical = encoder.Theta;
+            /* Calculate Speed from Encoder*/
+            calcEncoderSpeed();
             MC_CalculateSineCosine_Assembly_Ram(thetaElectrical,&sincosTheta);
             MC_TransformParkInverse_Assembly(&vdq,&sincosTheta,&valphabeta);
 
@@ -635,11 +583,10 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
     CalculateParkAngle ()
 
   Summary:
-    Function calculates the angle for open loop control
+    Function calculates the angle for closed loop control
 
   Description:
     Generate the start sine waves feeding the motor terminals
-    Open loop control, forcing the motor to align and to start speeding up .
  
   Precondition:
     None.
@@ -662,11 +609,7 @@ void CalculateParkAngle(void)
         if (motorStartUpData.startupLock < LOCK_TIME)
         {
             motorStartUpData.startupLock += 1;
-        }
-        /* Then ramp up till the end speed */
-        else if (motorStartUpData.startupRamp < END_SPEED)
-        {
-            motorStartUpData.startupRamp += OPENLOOP_RAMPSPEED_INCREASERATE;
+            clearQEICount();
         }
         /* Switch to closed loop */
         else 
@@ -676,19 +619,12 @@ void CalculateParkAngle(void)
                 uGF.bits.OpenLoop = 0;
             #endif
         }
-        /* The angle set depends on startup ramp */
-        thetaElectricalOpenLoop += (int16_t)(motorStartUpData.startupRamp >> 
-                                            STARTUPRAMP_THETA_OPENLOOP_SCALER);
-
+        calcEncoderAngle();
     }
     /* Switched to closed loop */
     else 
     {
-        /* In closed loop slowly decrease the offset add to the estimated angle */
-        if (estimator.qRhoOffset > 0)
-        {
-            estimator.qRhoOffset--;
-        }
+        calcEncoderAngle();
     }
 }
 // *****************************************************************************

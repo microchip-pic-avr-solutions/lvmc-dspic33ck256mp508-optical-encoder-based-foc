@@ -96,8 +96,6 @@ typedef union
         unsigned OpenLoop:1;
         /* Mode changed indication - from open to closed loop */
         unsigned ChangeMode:1;
-        /* Speed doubled indication */
-        unsigned ChangeSpeed:1;
        /* Unused bits */
         unsigned    :12;
     } bits;

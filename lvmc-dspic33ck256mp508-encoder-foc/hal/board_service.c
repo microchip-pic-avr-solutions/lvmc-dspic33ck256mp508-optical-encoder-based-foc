@@ -40,6 +40,7 @@
 #include "adc.h"
 #include "pwm.h"
 #include "cmp.h"
+#include "qei.h"
 
 BUTTON_T buttonStartStop;
 BUTTON_T buttonSpeedHalfDouble;
@@ -180,7 +181,7 @@ void InitPeripherals(void)
     cmpReference = cmpReference + 2048; 
     CMP1_ReferenceSet(cmpReference);
     InitializeADCs();
-    
+    InitQEI();
     InitPWMGenerators();
     
     /* Make sure ADC does not generate interrupt while initializing parameters*/
