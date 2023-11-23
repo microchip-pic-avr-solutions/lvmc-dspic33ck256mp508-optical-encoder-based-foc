@@ -55,37 +55,6 @@
 #include "xc.h"
 #include "userparms.h"
 #include "qei.h"
-#include "pwm.h"
-
-int32_t getQEICount(void)
-{
-    int32_t pos;
-    int32_t posHigh;
-    
-    pos = POS1CNTL;
-    posHigh = POS1HLD;
-    posHigh = posHigh << 16;
-    return(posHigh | pos);
-}
-
-int32_t getQEIVelocity(void)
-{
-    int32_t velo;
-    int32_t veloHigh;
-    
-    velo = VEL1CNT;
-    veloHigh = VEL1HLD;
-    veloHigh = veloHigh << 16;
-    return(veloHigh | velo);
-}
-
-void clearQEICount(void)
-{
-    POS1CNTL = 0;
-    POS1CNTH = 0; 
-    QEI1CONbits.QEIEN = 1;
-}
-
 
 void InitQEI(void)
 {
@@ -94,7 +63,7 @@ void InitQEI(void)
     QEI1CON = 0;
     
     QEI1CONbits.PIMOD = 0b110;  // Modulo Count mode
-    
+    QEI1CONbits.INTDIV = 0b100; //1:16 prescale value
     POS1CNTL = 0;
     POS1CNTH = 0;
     
@@ -121,39 +90,3 @@ void InitQEI(void)
     
     QEI1CONbits.QEIEN = 1;
 }
-
-/*****************************************************************************
- *Function:
- *      calcEncoderAngle()
- * 
- * Summary:
- *      Function calculates the motor rotor angle from the encoder
- *      
- *
- *****************************************************************************/
-void calcEncoderAngle(void)
-{
-    encoder.positionCount = (int16_t)getQEICount();
-    encoder.Theta = encoder.positionCount * 327;
-}
-
-/*****************************************************************************
- *Function:
- *      calcEncoderSpeed()
- * 
- * Summary:
- *      Function calculates the motor speed from the encoder
- *      
- *
- *****************************************************************************/
-void calcEncoderSpeed(void)
-{
-    encoder.velocityDelayCounter++;
-    if(encoder.velocityDelayCounter>=(PWMFREQUENCY_HZ/VELOCITY_CONTROL_ESEC_FREQ_HZ))
-    {    
-        encoder.velocityCount = (int16_t)getQEIVelocity();
-        encoder.Speed = encoder.velocityCount * SPEED_MULTI_ELEC;
-        encoder.velocityDelayCounter = 0;
-    }
-}
-

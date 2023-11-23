@@ -1,19 +1,4 @@
 /*******************************************************************************
-   Header File for High-Resolution PWM with Fine Edge Placement Configuration
-
-  File Name:
-    pwm.h
-
-  Summary:
-    This header file lists routines to configure High-Resolution PWM with Fine 
-    Edge Placement 
-
-  Description:
-    Definitions in the file are for dsPIC33CK256MP508 on Motor Control 
-    Development board from Microchip
-
-*******************************************************************************/
-/*******************************************************************************
 * Copyright (c) 2017 released Microchip Technology Inc.  All rights reserved.
 *
 * SOFTWARE LICENSE AGREEMENT:
@@ -47,8 +32,8 @@
 * certify, or support the code.
 *
 *******************************************************************************/
-#ifndef _QEI_H
-#define	_QEI_H
+#ifndef _ENCODER_H
+#define	_ENCODER_H
 
 #ifdef __cplusplus  // Provide C++ Compatability
     extern "C" {
@@ -66,16 +51,44 @@
 // Section: Constants
 // *****************************************************************************
 // *****************************************************************************
+typedef struct
+{
+    /*Encoder Theta*/
+    int16_t Theta;
+    /*Encoder Speed*/
+    int16_t Speed;
+    /*Position Count Measurement*/
+    int16_t positionCount;
+    /*Delay counter for Speed Measurement*/
+    int16_t velocityDelayCounter;
+    /*Velocity Count Measurement*/
+    int16_t velocityCount;
+    
+    uint16_t timerCount;
+    uint16_t timerSpeed;
 
+    int16_t period;
+    int32_t timerStateVar;
+    int16_t timerFilter;
+    int16_t timerKFilter;
+} ENCODER;
+
+extern ENCODER encoder;
 // *****************************************************************************
 // *****************************************************************************
 // Section: Interface Routines
 // *****************************************************************************
 // *****************************************************************************
-extern void InitQEI(void);
+extern int32_t getQEICount(void);
+extern void clearQEICount(void);
+extern int32_t getQEIVelocity(void);
+extern int32_t getQEITimer(void);
+
+void calcEncoderAngle(void);
+void calcEncoderSpeed(void);
 
 #ifdef __cplusplus  // Provide C++ Compatibility
     }
 #endif
-#endif      // end of QEI_H
+#endif      // end of _ENCODER_H
 
