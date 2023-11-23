@@ -1,11 +1,11 @@
-![image](images/microchip_logo_white_red.png) 
+![image](images/microchip_logo_black_red.png) 
 
-# OPTICAL ENCODER BASED FOC USING  DSPIC33CK256MP508 LVMC
+# Optical Encoder based FOC for PMSM:  dsPIC33CK Low Voltage Motor Control Board
 
 ## 1. INTRODUCTION
-This demonstration describes a method of driving Permanent Magnet Synchronous Motor (PMSM) using optical encoder based Field Oriented Control (FOC) on the hardware platform dsPIC33CK Low Voltage Motor Control Board (LVMC). 
+This demonstration describes a method of driving Permanent Magnet Synchronous Motor (PMSM) using optical encoder based Field Oriented Control (FOC) on the hardware platform dsPIC33CK Low Voltage Motor Control Board ([LVMC](https://www.microchip.com/developmenttools/ProductDetails/PartNO/DM330031)). 
  
-The  rotor position information is obtained from the optical encoder of the motor. .......content needed......
+The Quadrature Encoder Interface ([QEI](https://ww1.microchip.com/downloads/aemDocuments/documents/MCU16/ProductDocuments/ReferenceManuals/dsPIC33-PIC24-FRM-Quadrature-Encoder-Interface-QEI-DS70000601D.pdf)) perpheral of the dsPIC DSC can be configured to obtain the position and speed information from the opitical encoder feedback of the motor.
 
 ## 2. SUGGESTED DEMONSTRATION REQUIREMENTS
 
@@ -44,7 +44,7 @@ This section describes hardware setup required for the demonstration.
 
 | LVMC Board|Hurst300 Motor| |
 | :--------:| :-----------:|:--:|
-|           |Winding Terminals (Color as per image below) | Molex 39-01-2040(Mating Connector)    |
+|           |Winding Terminals (Color as per image below) | Power Connector (Molex 39-01-2040)    |
 | PHC   | Red   | 1|
 | PHB   | Black | 2|
 | PHA   | White | 3|
@@ -53,9 +53,9 @@ This section describes hardware setup required for the demonstration.
 
 2. Connect the encoder from the motor to QEA and QEB terminals of **connector J8**, provided on the Development Board as mentioned in the below table. </p>
 
-|MCLV2 Board|	Hurst300 Motor||
+|LVMC Board|	Hurst300 Motor||
 |:---:|:----------------------:|:----------------------:|
-||Hall Terminals(Color as per image above)|	FCI Connect #69168-108 (Mating Connector)|
+||Hall Terminals(Color as per image above)|	Encoder Connector (FCI Connect #69168-108) |
 |5V|	Red|	1|
 |GND|	Black|	8|
 |QEA	| White	|5|
@@ -98,9 +98,9 @@ X2C-Scope is an MPLAB X IDE plugin that allows developers to interact with an ap
 
 ##  5. BASIC DEMONSTRATION
 ### 5.1 Firmware Description
-The firmware version needed for the demonstration is mentioned in the section [Motor Control Application Firmware Required for the Demonstration](#21-motor-control-application-firmware-required-for-the-demonstration) section. This firmware is implemented to work on Microchip’s 16-bit Digital signal controller (dsPIC® DSC) **dsPIC33CK256MP508**. For more information, see the **dsPIC33CK256MP508 Family datasheet (DS70005349)**.
+The firmware version needed for the demonstration is mentioned in the section [Motor Control Application Firmware Required for the Demonstration](#21-motor-control-application-firmware-required-for-the-demonstration) section. This firmware is implemented to work on Microchip’s 16-bit Digital signal controller (dsPIC® DSC) **dsPIC33CK256MP508**. For more information, see the **dsPIC33CK256MP508 Family datasheet ([DS70005349](https://ww1.microchip.com/downloads/aemDocuments/documents/MCU16/ProductDocuments/DataSheets/dsPIC33CK256MP508-Family-Data-Sheet-DS70005349.pdf))**.
 
-The Motor Control Demo application uses a push button to start or stop the motor and a potentiometer to vary the speed of the motor. This Motor Control Demo Application configures and uses peripherals like PWM, ADC, UART, etc.</p>
+The Motor Control Demo application uses a push button to start or stop the motor and a potentiometer to vary the speed of the motor. This Motor Control Demo Application configures and uses peripherals like PWM, ADC, UART, QEI, etc.</p>
 
 > **Note:**</br>
 > The project may not build correctly in Windows OS if the Maximum path length of any source file in the project is more than 260 characters. In case the absolute path exceeds or nears the maximum length, do any (or both) of the following:
