@@ -63,7 +63,7 @@ void InitQEI(void)
     QEI1CON = 0;
     
     QEI1CONbits.PIMOD = 0b110;  // Modulo Count mode
-    QEI1CONbits.INTDIV = 0b100; //1:16 prescale value
+    QEI1CONbits.INTDIV = 0b010; //1:4 prescale value
     POS1CNTL = 0;
     POS1CNTH = 0;
     

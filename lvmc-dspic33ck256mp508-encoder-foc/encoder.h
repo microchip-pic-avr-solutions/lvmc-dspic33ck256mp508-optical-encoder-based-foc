@@ -63,13 +63,17 @@ typedef struct
     int16_t velocityDelayCounter;
     /*Velocity Count Measurement*/
     int16_t velocityCount;
-    
+    /*Speed calculated from the velocity count*/
+    int16_t  velCntSpeed;
+    /*Timer Count Measurement*/
     uint16_t timerCount;
-    uint16_t timerSpeed;
-
-    int16_t period;
+    /*Speed calculated from the timer count*/
+    int16_t  tmrCntSpeed;
+    /*State variable of low pass filter for timer count */
     int32_t timerStateVar;
+    /*Low pass filter output*/
     int16_t timerFilter;
+    /*Low pass filter co-efficient*/
     int16_t timerKFilter;
 } ENCODER;
 

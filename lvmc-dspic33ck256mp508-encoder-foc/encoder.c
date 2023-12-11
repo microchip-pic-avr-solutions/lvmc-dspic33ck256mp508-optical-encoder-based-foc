@@ -112,22 +112,36 @@ void calcEncoderAngle(void)
  *****************************************************************************/
 void calcEncoderSpeed(void)
 {     
-    encoder.timerCount = (uint16_t)getQEITimer();
+    encoder.velocityDelayCounter++;
+    if(encoder.velocityDelayCounter>=(PWMFREQUENCY_HZ/VELOCITY_CONTROL_ESEC_FREQ_HZ))
+    {    
+        encoder.velocityCount = (int16_t)getQEIVelocity();
+        encoder.velCntSpeed = encoder.velocityCount * SPEED_MULTI_VELCNT;
+        encoder.velocityDelayCounter = 0;
+    }
+    if(encoder.velocityCount >= 0)
+    {
+        encoder.timerCount = (uint16_t)getQEITimer();  
+    }
+    else
+    {
+        encoder.timerCount = -(uint16_t)getQEITimer();  
+    }
     encoder.timerStateVar += (((long int)encoder.timerCount - 
                 (long int)encoder.timerFilter)*(int)(encoder.timerKFilter));
     encoder.timerFilter = (int)(encoder.timerStateVar>>15); 
     if(encoder.timerCount != 0)
     {
-        encoder.timerSpeed =  (__builtin_divud((uint32_t)SPEED_MULTI_TIMER,
+        encoder.tmrCntSpeed =  (__builtin_divud((uint32_t)SPEED_MULTI_TMRCNT,
                                         (uint16_t)(encoder.timerFilter)));
     }
-    encoder.velocityDelayCounter++;
-    if(encoder.velocityDelayCounter>=(PWMFREQUENCY_HZ/VELOCITY_CONTROL_ESEC_FREQ_HZ))
-    {    
-        LED2 = ~LED2;
-        encoder.velocityCount = (int16_t)getQEIVelocity();
-        encoder.Speed = encoder.velocityCount * SPEED_MULTI_ELEC;
-        encoder.velocityDelayCounter = 0;
+    if(encoder.tmrCntSpeed < 5000)
+    {
+        encoder.Speed = encoder.tmrCntSpeed;
+    }
+    else
+    {
+        encoder.Speed = encoder.velCntSpeed;
     }
 }
 

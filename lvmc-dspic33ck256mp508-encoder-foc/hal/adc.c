@@ -153,8 +153,8 @@ void InitializeADCs (void)
     /* ADC Module Clock Source Divider bits (1 to 64)
        The divider forms a TCORESRC clock used by all ADC cores (shared and 
        dedicated) from the TSRC ADC module clock selected by the CLKSEL<2:0> .
-       000000 = 1 Source Clock Periods */
-    ADCON3Hbits.CLKDIV = 0;
+       000001 = 2 Source Clock Periods */
+    ADCON3Hbits.CLKDIV = 1;
     
     /* Initialize ADC CONTROL REGISTER 4 LOW */
     ADCON4L      = 0x0000;
