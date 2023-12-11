@@ -48,6 +48,7 @@
 #include "pwm.h"
 #include "adc.h"
 #include "qei.h"
+#include "encoder.h"
 #include "port_config.h"
 #include "delay.h"
 #include "board_service.h"
@@ -64,6 +65,7 @@ ENCODER encoder;
 
 volatile int16_t thetaElectrical = 0;
 uint16_t pwmPeriod;
+int16_t Speedloopcount;
 
 MC_ALPHABETA_T valphabeta,ialphabeta;
 MC_SINCOS_T sincosTheta;
@@ -126,6 +128,7 @@ int main ( void )
     DiagnosticsInit();
     
     BoardServiceInit();
+    encoder.timerKFilter = Q15(0.001);
     CORCONbits.SATA = 0;
     while(1)
     {        
@@ -211,7 +214,7 @@ void ResetParmeters(void)
     uGF.bits.OpenLoop = 1;
     /* Change mode */
     uGF.bits.ChangeMode = 1;
-    
+    Speedloopcount = 0;
     /* Initialize PI control parameters */
     InitControlParameters();
     /* Initialize measurement parameters */
@@ -248,7 +251,7 @@ void ResetParmeters(void)
     None.
  */
 void DoControl( void )
-{
+{    
     /* Temporary variables for sqrt calculation of q reference */
     volatile int16_t temp_qref_pow_q15;
     
@@ -274,7 +277,6 @@ void DoControl( void )
             #endif
         }
         /* PI control for D */
-        ctrlParm.qVdRef = D_CURRENT_REF_OPENLOOP;
         piInputId.inMeasure = idq.d;
         piInputId.inReference  = ctrlParm.qVdRef;
         MC_ControllerPIUpdate_Assembly(piInputId.inReference,
@@ -292,6 +294,8 @@ void DoControl( void )
         piInputIq.piState.outMax = _Q15sqrt (temp_qref_pow_q15);
         piInputIq.piState.outMin = - piInputIq.piState.outMax;    
         /* PI control for Q */
+        
+        ctrlParm.qVqRef = Q_CURRENT_REF_OPENLOOP;
         /* q current reference is equal to the velocity reference 
          while d current reference is equal to 0
         for maximum startup torque, set the q current to maximum acceptable 
@@ -375,14 +379,19 @@ void DoControl( void )
 
         /* If TORQUE MODE skip the speed controller */
         #ifndef	TORQUE_MODE
-            /* Execute the velocity control loop */
-            piInputOmega.inMeasure = encoder.Speed;
-            piInputOmega.inReference = ctrlParm.qVelRef;
-            MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
-                                           piInputOmega.inMeasure,
-                                           &piInputOmega.piState,
-                                           &piOutputOmega.out);
-            ctrlParm.qVqRef = piOutputOmega.out;
+            if(Speedloopcount == 0)
+            {
+                /* Execute the velocity control loop */
+                piInputOmega.inMeasure = encoder.Speed;
+                piInputOmega.inReference = ctrlParm.qVelRef;
+                MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
+                                               piInputOmega.inMeasure,
+                                               &piInputOmega.piState,
+                                               &piOutputOmega.out);
+                ctrlParm.qVqRef = piOutputOmega.out;
+                Speedloopcount = 30;
+            }
+            Speedloopcount--;
         #else
             ctrlParm.qVqRef = ctrlParm.qVelRef;
         #endif
@@ -414,7 +423,7 @@ void DoControl( void )
                                        &piOutputIq.out);
         vdq.q = piOutputIq.out;
     }
-      
+    
 }
 // *****************************************************************************
 /* Function:
@@ -609,7 +618,7 @@ void CalculateParkAngle(void)
         if (motorStartUpData.startupLock < LOCK_TIME)
         {
             motorStartUpData.startupLock += 1;
-            clearQEICount();
+//            clearQEICount();
         }
         /* Switch to closed loop */
         else 
@@ -619,7 +628,7 @@ void CalculateParkAngle(void)
                 uGF.bits.OpenLoop = 0;
             #endif
         }
-        calcEncoderAngle();
+//        calcEncoderAngle();
     }
     /* Switched to closed loop */
     else 
