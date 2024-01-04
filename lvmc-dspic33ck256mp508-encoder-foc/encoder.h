@@ -53,28 +53,28 @@
 // *****************************************************************************
 typedef struct
 {
-    /*Encoder Theta*/
-    int16_t Theta;
-    /*Encoder Speed*/
-    int16_t Speed;
     /*Position Count Measurement*/
     int16_t positionCount;
-    /*Delay counter for Speed Measurement*/
-    int16_t velocityDelayCounter;
-    /*Velocity Count Measurement*/
-    int16_t velocityCount;
-    /*Speed calculated from the velocity count*/
-    int16_t  velCntSpeed;
-    /*Timer Count Measurement*/
-    uint16_t timerCount;
-    /*Speed calculated from the timer count*/
-    int16_t  tmrCntSpeed;
+    /*Mechanical angle of the motor*/
+    uint16_t  theta_mec;
+    /*Electrical angle of the motor*/
+    uint16_t  theta_ele;
+    /*Angle difference for the speed calculation*/
+    uint16_t  theta_diff;
+    /*Speed measured from encoder*/
+    int16_t speed;
     /*State variable of low pass filter for timer count */
-    int32_t timerStateVar;
+    int32_t speedStateVar;
     /*Low pass filter output*/
-    int16_t timerFilter;
-    /*Low pass filter co-efficient*/
-    int16_t timerKFilter;
+    int16_t speedFilter;
+    /*Low pass filter coefficient*/
+    int16_t speedKFilter;
+    /*Buffer to store the angle samples for speed calculation*/
+    uint16_t  theta_mec_buf[20];
+    /*Buffer Index*/
+    uint16_t  buffer_Idx;
+    /*Angle offset at the starting*/
+    uint16_t  theta_offset;
 } ENCODER;
 
 extern ENCODER encoder;
@@ -83,13 +83,8 @@ extern ENCODER encoder;
 // Section: Interface Routines
 // *****************************************************************************
 // *****************************************************************************
-extern int32_t getQEICount(void);
-extern void clearQEICount(void);
-extern int32_t getQEIVelocity(void);
-extern int32_t getQEITimer(void);
 
-void calcEncoderAngle(void);
-void calcEncoderSpeed(void);
+void calc_Encoder_Angle_Speed(void);
 
 #ifdef __cplusplus  // Provide C++ Compatibility
     }

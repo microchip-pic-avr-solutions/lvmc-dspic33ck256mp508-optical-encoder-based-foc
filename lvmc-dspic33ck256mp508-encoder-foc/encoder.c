@@ -46,102 +46,46 @@
 #include "pwm.h"
 #include "port_config.h"
 
-int32_t getQEICount(void)
-{
-    int32_t pos;
-    int32_t posHigh;
-    
-    pos = POS1CNTL;
-    posHigh = POS1HLD;
-    posHigh = posHigh << 16;
-    return(posHigh | pos);
-}
-
-int32_t getQEIVelocity(void)
-{
-    int32_t velo;
-    int32_t veloHigh;
-    
-    velo = VEL1CNT;
-    veloHigh = VEL1HLD;
-    veloHigh = veloHigh << 16;
-    return(veloHigh | velo);
-}
-
-int32_t getQEITimer(void)
-{
-    int32_t timer;
-    int32_t timerHigh;
-    
-    timer = INT1HLDL;
-    timerHigh = INT1HLDH;
-    timerHigh = timerHigh << 16;
-    return(timerHigh | timer);
-}
-
-void clearQEICount(void)
-{
-    POS1CNTL = 0;
-    POS1CNTH = 0; 
-    QEI1CONbits.QEIEN = 1;
-}
-
 /*****************************************************************************
  *Function:
- *      calcEncoderAngle()
+ *      calc_Encoder_Angle_Speed()
  * 
  * Summary:
- *      Function calculates the motor rotor angle from the encoder
+ *      Function calculates the motor rotor angle and speed from the encoder
  *      
  *
  *****************************************************************************/
-void calcEncoderAngle(void)
+void calc_Encoder_Angle_Speed(void)
 {
-    encoder.positionCount = (int16_t)getQEICount();
-    encoder.Theta = encoder.positionCount * 327;
-}
-
-/*****************************************************************************
- *Function:
- *      calcEncoderSpeed()
- * 
- * Summary:
- *      Function calculates the motor speed from the encoder
- *      
- *
- *****************************************************************************/
-void calcEncoderSpeed(void)
-{     
-    encoder.velocityDelayCounter++;
-    if(encoder.velocityDelayCounter>=(PWMFREQUENCY_HZ/VELOCITY_CONTROL_ESEC_FREQ_HZ))
-    {    
-        encoder.velocityCount = (int16_t)getQEIVelocity();
-        encoder.velCntSpeed = encoder.velocityCount * SPEED_MULTI_VELCNT;
-        encoder.velocityDelayCounter = 0;
-    }
-    if(encoder.velocityCount >= 0)
+    encoder.positionCount = POS1CNTL;
+    
+    /*Position count to mechanical angle conversion from 0 to 65535*/
+    encoder.theta_mec = (uint16_t)(__builtin_mulss(encoder.positionCount, 16777) >> 8);
+    
+    /*Mechanical Angle to Electrical Angle conversion*/
+    encoder.theta_ele = (uint16_t)(__builtin_mulss(encoder.theta_mec, NOPOLESPAIRS));
+    
+    /*Angle difference between 20 Samples for speed calculation*/
+    encoder.theta_diff = encoder.theta_ele - encoder.theta_mec_buf[encoder.buffer_Idx];
+    
+    /*Speed = Theta_Diff * [60/(Delay_Samples*50us*65535)], Here Delay_Samples = 20
+     [60/(Delay_Samples*50us)] = 60000   - multiplication with Theta_diff causes overflow
+     So, 60000/2^5 = 1875 used for multiplication and this is compensated with right shifting*/
+    encoder.speed = (int16_t)(__builtin_mulss(encoder.theta_diff, 1875) >> 11);    
+    
+    /*Low pass filter for the speed*/
+    encoder.speedStateVar += (((long int)encoder.speed - 
+                (long int)encoder.speedFilter)*(int)(encoder.speedKFilter));
+    encoder.speedFilter = (int)(encoder.speedStateVar>>15);
+    
+    /*Circular Buffer Delay for 20 samples*/
+    encoder.theta_mec_buf[encoder.buffer_Idx] = encoder.theta_ele;
+    if(encoder.buffer_Idx < 19)
     {
-        encoder.timerCount = (uint16_t)getQEITimer();  
+        encoder.buffer_Idx++;
     }
     else
     {
-        encoder.timerCount = -(uint16_t)getQEITimer();  
-    }
-    encoder.timerStateVar += (((long int)encoder.timerCount - 
-                (long int)encoder.timerFilter)*(int)(encoder.timerKFilter));
-    encoder.timerFilter = (int)(encoder.timerStateVar>>15); 
-    if(encoder.timerCount != 0)
-    {
-        encoder.tmrCntSpeed =  (__builtin_divud((uint32_t)SPEED_MULTI_TMRCNT,
-                                        (uint16_t)(encoder.timerFilter)));
-    }
-    if(encoder.tmrCntSpeed < 5000)
-    {
-        encoder.Speed = encoder.tmrCntSpeed;
-    }
-    else
-    {
-        encoder.Speed = encoder.velCntSpeed;
+        encoder.buffer_Idx = 0;
     }
 }
-
