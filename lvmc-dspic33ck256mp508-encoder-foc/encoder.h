@@ -46,11 +46,23 @@
 #include <xc.h>
 #include <stdint.h>
 #include "clock.h"
+#include "userparms.h"
 // *****************************************************************************
 // *****************************************************************************
 // Section: Constants
 // *****************************************************************************
 // *****************************************************************************
+        
+/*No of delay samples used for speed measurement*/        
+#define DELAY_SAMPLES          20
+        
+/*Speed = Theta_Diff * [60/(Delay_Samples*50us*2^16)], Here Delay_Samples = 20
+ [60/(Delay_Samples*50us)] = 60000   - multiplication with Theta_diff causes overflow
+So, 60000/2^5 = 1875 used for multiplication and this is compensated with right shifting*/
+#define SPEED_SCALING_Q        5
+
+#define SPEED_MULTIPLIER       (60/(DELAY_SAMPLES*0.00005))/(2<<(SPEED_SCALING_Q-1))
+  
 typedef struct
 {
     /*Position Count Measurement*/
@@ -61,14 +73,18 @@ typedef struct
     uint16_t  theta_ele;
     /*Angle difference for the speed calculation*/
     uint16_t  theta_diff;
-    /*Speed measured from encoder*/
+    /*Speed measured from encoder in RPM*/
     int16_t speed;
+    /*Speed measured in per unit*/
+    int16_t speed_pu;
     /*State variable of low pass filter for timer count */
     int32_t speedStateVar;
     /*Low pass filter output*/
     int16_t speedFilter;
     /*Low pass filter coefficient*/
     int16_t speedKFilter;
+    /*State variable of low pass filter for timer count */
+    int32_t speedStateVarPU;
     /*Buffer to store the angle samples for speed calculation*/
     uint16_t  theta_mec_buf[20];
     /*Buffer Index*/

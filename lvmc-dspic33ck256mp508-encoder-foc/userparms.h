@@ -52,30 +52,7 @@ extern "C" {
 // Section: Constants
 // *****************************************************************************
 // *****************************************************************************
-        
-
-
-/* Definition for tuning - if active the speed reference is a ramp with a 
-constant slope. The slope is determined by TUNING_DELAY_RAMPUP constant.
- the software ramp implementing the speed increase has a constant slope, 
- adjusted by the delay TUNING_DELAY_RAMPUP when the speed is incremented.
- The potentiometer speed reference is overwritten. The speed is          
- increased from 0 up to the END_SPEED_RPM in open loop ? with the speed  
- increase typical to open loop, the transition to closed loop is done    
- and the software speed ramp reference is continued up to MAXIMUM_SPEED_RPM. */
-#undef TUNING
-
-/* if TUNING was define, then the ramp speed is needed: */
-#ifdef TUNING
-    /* the smaller the value, the quicker the ramp */
-    #define TUNING_DELAY_RAMPUP   0xF      
-#endif
-
-
-/* open loop continuous functioning */
-/* closed loop transition disabled  */
-#undef OPEN_LOOP_FUNCTIONING
-
+ 
 /* Definition for torque mode - for a separate tuning of the current PI
 controllers, tuning mode will disable the speed PI controller */
 #undef TORQUE_MODE
@@ -94,44 +71,32 @@ controllers, tuning mode will disable the speed PI controller */
     
 /* Motor's number of pole pairs */
 #define NOPOLESPAIRS             5
+/* Base speed of the motor in RPM*/
+#define BASE_SPEED_RPM           5000
 /* Nominal speed of the motor in RPM */
 #define NOMINAL_SPEED_RPM        2800 
+#define NOMINAL_SPEED_PU         NORM_SPEED(NOMINAL_SPEED_RPM, BASE_SPEED_RPM)
 /* Maximum speed of the motor in RPM - given by the motor's manufacturer */
 #define MAXIMUM_SPEED_RPM        3500 
-
+#define MAXIMUN_SPEED_PU         NORM_SPEED(MAXIMUM_SPEED_RPM, BASE_SPEED_RPM)
 /* Encoder counts per mechanical rotation (encoder resolution)*/
 #define QEI_COUNT_PER_MECH_REVOLUTION       1000
-#define ELECTRICAL_CYCLE_COUNT      		(QEI_COUNT_PER_MECH_REVOLUTION/NOPOLESPAIRS)
-#define ELECTRICAL_CYCLE_COUNT_PI_RADS		(ELECTRICAL_CYCLE_COUNT/2) 
 
 /* The following values are given in the xls attached file */
 #define NORM_CURRENT_CONST     0.000671
-#define NORM_VOLTAGE_CONST     0.000406
 /**********************  support xls file definitions end *********************/
- 
-/* Frequency at which the velocity counter is read (1kHz - 4kHz from device Data sheet)*/
-#define VELOCITY_CONTROL_ESEC_FREQ_HZ       1000  
-    
-/* Speed Multiplier to calculate the electrical speed of the motor using VL1CNT
- * Electrical Speed =  60*PP*SPEED_MULTI_ELEC*Velocity Count */
-#define SPEED_MULTI_VELCNT             60*NOPOLESPAIRS
-/* Speed Multiplier to calculate the electrical speed of the motor using INT1HDL and INT1HDH
-  Electrical Speed = [(FCY*60*PP)/(TimerScaler*QEI_COUNT_PER_MECH_REVOLUTION)]/Timer Count */
-#define SPEED_MULTI_TMRCNT            (FCY/(QEI_COUNT_PER_MECH_REVOLUTION*4))*SPEED_MULTI_VELCNT
+
 /* current transformation macro, used below */
-#define NORM_CURRENT(current_real) (Q15(current_real/NORM_CURRENT_CONST/32768))
-
-/* Open loop startup constants */
-
+#define NORM_CURRENT(current_real)    (Q15(current_real/NORM_CURRENT_CONST/32768))
+/* speed transformation macro, used below */
+#define NORM_SPEED(real,base)         (Q15((float)real/(float)base))
+    
+/* Startup constants */
 /* The following values depends on the PWM frequency,
  lock time is the time needed for motor's poles alignment 
-before the open loop speed ramp up */
+ during start up */
 /* This number is: 20,000 is 1 second. */
-#define LOCK_TIME 5000 
-/* Open loop speed ramp up end value Value in RPM*/
-#define END_SPEED_RPM 20 
-/* Open loop q current setup - */
-#define Q_CURRENT_REF_OPENLOOP NORM_CURRENT(0.5)
+#define LOCK_TIME 4000 
 
 /* Specify Over Current Limit - DC BUS */
 #define Q15_OVER_CURRENT_THRESHOLD NORM_CURRENT(8.0)
@@ -140,35 +105,35 @@ before the open loop speed ramp up */
 #define MAXIMUMSPEED_ELECTR MAXIMUM_SPEED_RPM*NOPOLESPAIRS
 /* Nominal motor speed converted into electrical speed */
 #define NOMINALSPEED_ELECTR NOMINAL_SPEED_RPM*NOPOLESPAIRS
-
-/* End speed of open loop ramp up converted into electrical speed */
-#define ENDSPEED_ELECTR END_SPEED_RPM*NOPOLESPAIRS
     
 /* In case of the potentiometer speed reference, a reference ramp
 is needed for assuring the motor can follow the reference imposed /
 minimum value accepted */
-#define SPEEDREFRAMP   Q15(0.00003)  
+#define SPEEDREFRAMP           Q15(0.00003)  
 /* The Speed Control Loop Executes every  SPEEDREFRAMP_COUNT */
-#define SPEEDREFRAMP_COUNT   3  
+#define SPEEDREFRAMP_COUNT     3  
     
+/*Count to reduce the velocity loop operating frequency
+ Here count 30 corresponds to frequency of 30*Ts = 1.5ms */
+#define VELOCITY_LOOP_COUNT    30
 /* PI controllers tuning values - */     
 /* D Control Loop Coefficients */
-#define D_CURRCNTR_PTERM       Q15(0.2437)
-#define D_CURRCNTR_ITERM       Q15(0.1509)
+#define D_CURRCNTR_PTERM       Q15(0.183)
+#define D_CURRCNTR_ITERM       Q15(0.09)
 #define D_CURRCNTR_CTERM       Q15(0.999)
 #define D_CURRCNTR_OUTMAX      0x7FFF
 
 /* Q Control Loop Coefficients */
-#define Q_CURRCNTR_PTERM       Q15(0.2437)
-#define Q_CURRCNTR_ITERM       Q15(0.1509)
+#define Q_CURRCNTR_PTERM       Q15(0.183)
+#define Q_CURRCNTR_ITERM       Q15(0.09)
 #define Q_CURRCNTR_CTERM       Q15(0.999)
 #define Q_CURRCNTR_OUTMAX      0x7FFF
 
 /* Velocity Control Loop Coefficients */
-#define SPEEDCNTR_PTERM        Q15(0.008)
-#define SPEEDCNTR_ITERM        Q15(0.0008)
+#define SPEEDCNTR_PTERM        Q15(0.3)
+#define SPEEDCNTR_ITERM        Q15(0.045)
 #define SPEEDCNTR_CTERM        Q15(0.999)
-#define SPEEDCNTR_OUTMAX       0x5000
+#define SPEEDCNTR_OUTMAX       0x6000
 
 #ifdef __cplusplus
 }

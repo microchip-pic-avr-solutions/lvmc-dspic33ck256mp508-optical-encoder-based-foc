@@ -72,13 +72,8 @@ typedef struct
 */
 typedef struct
 {
-    /* Start up ramp in open loop. */
-    uint32_t startupRamp;
     /* counter that is incremented in CalculateParkAngle() up to LOCK_TIME,*/
     uint16_t startupLock;
-    /* Start up ramp increment */
-    uint16_t tuningAddRampup;	
-    uint16_t tuningDelayRampup;
 } MOTOR_STARTUP_DATA_T;
 
 /* General system flag data type
@@ -93,9 +88,11 @@ typedef union
         /* Run motor indication */
         unsigned RunMotor:1;
         /* Open loop/closed loop indication */
-        unsigned OpenLoop:1;
+        unsigned Startup:1;
         /* Mode changed indication - from open to closed loop */
         unsigned ChangeMode:1;
+        /* Motor Direction change indication*/
+        unsigned ChangeDirection:1;
        /* Unused bits */
         unsigned    :12;
     } bits;
