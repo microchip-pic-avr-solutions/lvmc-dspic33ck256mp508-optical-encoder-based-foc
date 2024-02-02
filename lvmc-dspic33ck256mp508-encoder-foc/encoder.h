@@ -1,19 +1,4 @@
 /*******************************************************************************
-   Header File for High-Resolution PWM with Fine Edge Placement Configuration
-
-  File Name:
-    pwm.h
-
-  Summary:
-    This header file lists routines to configure High-Resolution PWM with Fine 
-    Edge Placement 
-
-  Description:
-    Definitions in the file are for dsPIC33CK256MP508 on Motor Control 
-    Development board from Microchip
-
-*******************************************************************************/
-/*******************************************************************************
 * Copyright (c) 2017 released Microchip Technology Inc.  All rights reserved.
 *
 * SOFTWARE LICENSE AGREEMENT:
@@ -47,8 +32,8 @@
 * certify, or support the code.
 *
 *******************************************************************************/
-#ifndef _QEI_H
-#define	_QEI_H
+#ifndef _ENCODER_H
+#define	_ENCODER_H
 
 #ifdef __cplusplus  // Provide C++ Compatability
     extern "C" {
@@ -61,21 +46,62 @@
 #include <xc.h>
 #include <stdint.h>
 #include "clock.h"
+#include "userparms.h"
 // *****************************************************************************
 // *****************************************************************************
 // Section: Constants
 // *****************************************************************************
 // *****************************************************************************
+        
+/*No of delay samples used for speed measurement*/        
+#define DELAY_SAMPLES          20
+        
+/*Speed = Theta_Diff * [60/(Delay_Samples*50us*2^16)], Here Delay_Samples = 20
+ [60/(Delay_Samples*50us)] = 60000   - multiplication with Theta_diff causes overflow
+So, 60000/2^5 = 1875 used for multiplication and this is compensated with right shifting*/
+#define SPEED_SCALING_Q        5
 
+#define SPEED_MULTIPLIER       (60/(DELAY_SAMPLES*0.00005))/(2<<(SPEED_SCALING_Q-1))
+  
+typedef struct
+{
+    /*Position Count Measurement*/
+    int16_t positionCount;
+    /*Mechanical angle of the motor*/
+    uint16_t  theta_mec;
+    /*Electrical angle of the motor*/
+    uint16_t  theta_ele;
+    /*Angle difference for the speed calculation*/
+    uint16_t  theta_diff;
+    /*Speed measured from encoder in RPM*/
+    int16_t speed;
+    /*State variable of low pass filter for timer count */
+    int32_t speedStateVar;
+    /*Low pass filter output*/
+    int16_t speedFilter;
+    /*Low pass filter coefficient*/
+    int16_t speedKFilter;
+    /*State variable of low pass filter for timer count */
+    int32_t speedStateVarPU;
+    /*Buffer to store the angle samples for speed calculation*/
+    uint16_t  theta_mec_buf[20];
+    /*Buffer Index*/
+    uint16_t  buffer_Idx;
+    /*Angle offset at the starting*/
+    uint16_t  theta_offset;
+} ENCODER;
+
+extern ENCODER encoder;
 // *****************************************************************************
 // *****************************************************************************
 // Section: Interface Routines
 // *****************************************************************************
 // *****************************************************************************
-extern void InitQEI(void);
+
+void calc_Encoder_Angle_Speed(void);
 
 #ifdef __cplusplus  // Provide C++ Compatibility
     }
 #endif
-#endif      // end of QEI_H
+#endif      // end of _ENCODER_H
 

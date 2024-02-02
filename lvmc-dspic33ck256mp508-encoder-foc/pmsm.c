@@ -48,6 +48,7 @@
 #include "pwm.h"
 #include "adc.h"
 #include "qei.h"
+#include "encoder.h"
 #include "port_config.h"
 #include "delay.h"
 #include "board_service.h"
@@ -62,8 +63,9 @@ CTRL_PARM_T ctrlParm;
 MOTOR_STARTUP_DATA_T motorStartUpData;
 ENCODER encoder;
 
-volatile int16_t thetaElectrical = 0;
+volatile uint16_t thetaElectrical = 0;
 uint16_t pwmPeriod;
+int16_t Speedloopcount;
 
 MC_ALPHABETA_T valphabeta,ialphabeta;
 MC_SINCOS_T sincosTheta;
@@ -126,7 +128,9 @@ int main ( void )
     DiagnosticsInit();
     
     BoardServiceInit();
+    encoder.speedKFilter = Q15(0.001);
     CORCONbits.SATA = 0;
+    uGF.bits.ChangeDirection = 0;
     while(1)
     {        
         /* Reset parameters used for running motor through Inverter A*/
@@ -151,6 +155,11 @@ int main ( void )
                 }
 
             }
+            if (IsPressed_Button2())
+            {
+                uGF.bits.ChangeDirection = !uGF.bits.ChangeDirection;
+            }
+
         }
 
     } // End of Main loop
@@ -208,10 +217,10 @@ void ResetParmeters(void)
     /* Set the reference speed value to 0 */
     ctrlParm.qVelRef = 0;
     /* Restart in open loop */
-    uGF.bits.OpenLoop = 1;
+    uGF.bits.Startup = 1;
     /* Change mode */
     uGF.bits.ChangeMode = 1;
-    
+    Speedloopcount = 0;
     /* Initialize PI control parameters */
     InitControlParameters();
     /* Initialize measurement parameters */
@@ -248,11 +257,11 @@ void ResetParmeters(void)
     None.
  */
 void DoControl( void )
-{
+{    
     /* Temporary variables for sqrt calculation of q reference */
     volatile int16_t temp_qref_pow_q15;
     
-    if  (uGF.bits.OpenLoop)
+    if  (uGF.bits.Startup)
     {
         /* OPENLOOP:  force rotating angle,Vd and Vq */
         if  (uGF.bits.ChangeMode)
@@ -267,43 +276,7 @@ void DoControl( void )
 
             /* Reinitialize variables for initial speed ramp */
             motorStartUpData.startupLock = 0;
-            motorStartUpData.startupRamp = 0;
-            #ifdef TUNING
-                motorStartUpData.tuningAddRampup = 0;
-                motorStartUpData.tuningDelayRampup = 0;
-            #endif
         }
-        /* PI control for D */
-        ctrlParm.qVdRef = D_CURRENT_REF_OPENLOOP;
-        piInputId.inMeasure = idq.d;
-        piInputId.inReference  = ctrlParm.qVdRef;
-        MC_ControllerPIUpdate_Assembly(piInputId.inReference,
-                                       piInputId.inMeasure,
-                                       &piInputId.piState,
-                                       &piOutputId.out);
-        vdq.d = piOutputId.out;
-         /* Dynamic d-q adjustment
-         with d component priority 
-         vq=sqrt (vs^2 - vd^2) 
-        limit vq maximum to the one resulting from the calculation above */
-        temp_qref_pow_q15 = (int16_t)(__builtin_mulss(piOutputId.out ,
-                                                      piOutputId.out) >> 15);
-        temp_qref_pow_q15 = Q15(MAX_VOLTAGE_VECTOR) - temp_qref_pow_q15;
-        piInputIq.piState.outMax = _Q15sqrt (temp_qref_pow_q15);
-        piInputIq.piState.outMin = - piInputIq.piState.outMax;    
-        /* PI control for Q */
-        /* q current reference is equal to the velocity reference 
-         while d current reference is equal to 0
-        for maximum startup torque, set the q current to maximum acceptable 
-        value represents the maximum peak value */
-        piInputIq.inMeasure = idq.q;
-        piInputIq.inReference = ctrlParm.qVqRef;
-        MC_ControllerPIUpdate_Assembly(piInputIq.inReference,
-                                       piInputIq.inMeasure,
-                                       &piInputIq.piState,
-                                       &piOutputIq.out);
-        vdq.q = piOutputIq.out;
-
     }
     else
     /* Closed Loop Vector Control */
@@ -311,9 +284,15 @@ void DoControl( void )
         /* Potentiometer value is scaled between ENDSPEED_ELECTR 
          * and NOMINALSPEED_ELECTR to set the speed reference*/
 
-        ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,
-                NOMINALSPEED_ELECTR-ENDSPEED_ELECTR)>>15) +
-                ENDSPEED_ELECTR;  
+        if(uGF.bits.ChangeDirection)
+        {
+            ctrlParm.targetSpeed = -(__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_RPM)>>15);
+        }
+        else
+        {
+            ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_RPM)>>15);
+        }
+          
             
         if  (ctrlParm.speedRampCount < SPEEDREFRAMP_COUNT)
         {
@@ -344,45 +323,30 @@ void DoControl( void )
             }
             ctrlParm.speedRampCount = 0;
         }
-        /* Tuning is generating a software ramp
-        with sufficiently slow ramp defined by 
-        TUNING_DELAY_RAMPUP constant */
-        #ifdef TUNING
-            /* if delay is not completed */
-            if (motorStartUpData.tuningDelayRampup > TUNING_DELAY_RAMPUP)
-            {
-                motorStartUpData.tuningDelayRampup = 0;
-            }
-            /* While speed less than maximum and delay is complete */
-            if ((motorStartUpData.tuningAddRampup < (MAXIMUMSPEED_ELECTR - ENDSPEED_ELECTR)) &&
-                                                  (motorStartUpData.tuningDelayRampup == 0) )
-            {
-                /* Increment ramp add */
-                motorStartUpData.tuningAddRampup++;
-            }
-            motorStartUpData.tuningDelayRampup++;
-            /* The reference is continued from the open loop speed up ramp */
-            ctrlParm.qVelRef = ENDSPEED_ELECTR +  motorStartUpData.tuningAddRampup;
-        #endif
-
+        
         if (uGF.bits.ChangeMode)
         {
             /* Just changed from open loop */
             uGF.bits.ChangeMode = 0;
             piInputOmega.piState.integrator = (int32_t)ctrlParm.qVqRef << 13;
-            ctrlParm.qVelRef = ENDSPEED_ELECTR;
+            ctrlParm.qVelRef = 0;
         }
 
         /* If TORQUE MODE skip the speed controller */
         #ifndef	TORQUE_MODE
-            /* Execute the velocity control loop */
-            piInputOmega.inMeasure = encoder.Speed;
-            piInputOmega.inReference = ctrlParm.qVelRef;
-            MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
-                                           piInputOmega.inMeasure,
-                                           &piInputOmega.piState,
-                                           &piOutputOmega.out);
-            ctrlParm.qVqRef = piOutputOmega.out;
+            if(Speedloopcount == 0)
+            {
+                /* Execute the velocity control loop */
+                piInputOmega.inMeasure = encoder.speedFilter;
+                piInputOmega.inReference = ctrlParm.qVelRef;
+                MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
+                                               piInputOmega.inMeasure,
+                                               &piInputOmega.piState,
+                                               &piOutputOmega.out);
+                ctrlParm.qVqRef = piOutputOmega.out;
+                Speedloopcount = VELOCITY_LOOP_COUNT;
+            }
+            Speedloopcount--;
         #else
             ctrlParm.qVqRef = ctrlParm.qVelRef;
         #endif
@@ -414,7 +378,7 @@ void DoControl( void )
                                        &piOutputIq.out);
         vdq.q = piOutputIq.out;
     }
-      
+    
 }
 // *****************************************************************************
 /* Function:
@@ -482,12 +446,12 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
 #endif
     if (uGF.bits.RunMotor)
     {
-
+    
         if (singleShuntParam.adcSamplePoint == 0)
         {
             measureInputs.current.Ia = ADCBUF_INV_A_IPHASE1;
             measureInputs.current.Ib = ADCBUF_INV_A_IPHASE2; 
-
+        
 #ifdef SINGLE_SHUNT
                 
             /* Reconstruct Phase currents from Bus Current*/                
@@ -508,23 +472,28 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
             DoControl();
             /* Calculate qAngle from Encoder*/
             CalculateParkAngle();
-            thetaElectrical = encoder.Theta;
-            /* Calculate Speed from Encoder*/
-            calcEncoderSpeed();
             MC_CalculateSineCosine_Assembly_Ram(thetaElectrical,&sincosTheta);
             MC_TransformParkInverse_Assembly(&vdq,&sincosTheta,&valphabeta);
 
             MC_TransformClarkeInverseSwappedInput_Assembly(&valphabeta,&vabc);
-                
+                      
+            if (uGF.bits.Startup == 1)
+            {
+                PWMDutyCycleSetLocking();              
+            }
+            else
+            {
 #ifdef  SINGLE_SHUNT
-            SingleShunt_CalculateSpaceVectorPhaseShifted(&vabc,pwmPeriod,&singleShuntParam);
+                SingleShunt_CalculateSpaceVectorPhaseShifted(&vabc,pwmPeriod,&singleShuntParam);
 
-            PWMDutyCycleSetDualEdge(&singleShuntParam.pwmDutycycle1,&singleShuntParam.pwmDutycycle2);
+                PWMDutyCycleSetDualEdge(&singleShuntParam.pwmDutycycle1,&singleShuntParam.pwmDutycycle2);
 #else
-            MC_CalculateSpaceVectorPhaseShifted_Assembly(&vabc,pwmPeriod,
+                MC_CalculateSpaceVectorPhaseShifted_Assembly(&vabc,pwmPeriod,
                                                         &pwmDutycycle);
-            PWMDutyCycleSet(&pwmDutycycle);
+            
+                PWMDutyCycleSet(&pwmDutycycle);
 #endif
+            }
                 
         }
     }
@@ -602,29 +571,27 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
  */
 void CalculateParkAngle(void)
 {
+    calc_Encoder_Angle_Speed();
     /* if open loop */
-    if (uGF.bits.OpenLoop)
+    if (uGF.bits.Startup)
     {
         /* begin with the lock sequence, for field alignment */
         if (motorStartUpData.startupLock < LOCK_TIME)
         {
             motorStartUpData.startupLock += 1;
-            clearQEICount();
+            encoder.theta_offset = encoder.theta_ele;
         }
         /* Switch to closed loop */
         else 
         {
-            #ifndef OPEN_LOOP_FUNCTIONING
-                uGF.bits.ChangeMode = 1;
-                uGF.bits.OpenLoop = 0;
-            #endif
+            uGF.bits.ChangeMode = 1;
+            uGF.bits.Startup = 0;
         }
-        calcEncoderAngle();
     }
-    /* Switched to closed loop */
-    else 
+    else
     {
-        calcEncoderAngle();
+        /* Angle calculated from the Encoder */
+        thetaElectrical = encoder.theta_ele - encoder.theta_offset;
     }
 }
 // *****************************************************************************
