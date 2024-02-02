@@ -63,7 +63,7 @@ CTRL_PARM_T ctrlParm;
 MOTOR_STARTUP_DATA_T motorStartUpData;
 ENCODER encoder;
 
-volatile int16_t thetaElectrical = 0;
+volatile uint16_t thetaElectrical = 0;
 uint16_t pwmPeriod;
 int16_t Speedloopcount;
 
@@ -286,11 +286,11 @@ void DoControl( void )
 
         if(uGF.bits.ChangeDirection)
         {
-            ctrlParm.targetSpeed = -(__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_PU)>>15);
+            ctrlParm.targetSpeed = -(__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_RPM)>>15);
         }
         else
         {
-            ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_PU)>>15);
+            ctrlParm.targetSpeed = (__builtin_mulss(measureInputs.potValue,NOMINAL_SPEED_RPM)>>15);
         }
           
             
@@ -337,7 +337,7 @@ void DoControl( void )
             if(Speedloopcount == 0)
             {
                 /* Execute the velocity control loop */
-                piInputOmega.inMeasure = encoder.speed_pu;
+                piInputOmega.inMeasure = encoder.speedFilter;
                 piInputOmega.inReference = ctrlParm.qVelRef;
                 MC_ControllerPIUpdate_Assembly(piInputOmega.inReference,
                                                piInputOmega.inMeasure,
@@ -472,33 +472,28 @@ void __attribute__((__interrupt__,no_auto_psv)) _ADCInterrupt()
             DoControl();
             /* Calculate qAngle from Encoder*/
             CalculateParkAngle();
-            /* Angle calculated from the Encoder */
-            thetaElectrical = encoder.theta_ele - encoder.theta_offset;
             MC_CalculateSineCosine_Assembly_Ram(thetaElectrical,&sincosTheta);
             MC_TransformParkInverse_Assembly(&vdq,&sincosTheta,&valphabeta);
 
             MC_TransformClarkeInverseSwappedInput_Assembly(&valphabeta,&vabc);
-                
-#ifdef  SINGLE_SHUNT
-            SingleShunt_CalculateSpaceVectorPhaseShifted(&vabc,pwmPeriod,&singleShuntParam);
-
-            PWMDutyCycleSetDualEdge(&singleShuntParam.pwmDutycycle1,&singleShuntParam.pwmDutycycle2);
-#else
-            
+                      
             if (uGF.bits.Startup == 1)
             {
-                PG3DC = 1000;
-                PG2DC = 500;
-                PG1DC = 500;                
+                PWMDutyCycleSetLocking();              
             }
             else
             {
+#ifdef  SINGLE_SHUNT
+                SingleShunt_CalculateSpaceVectorPhaseShifted(&vabc,pwmPeriod,&singleShuntParam);
+
+                PWMDutyCycleSetDualEdge(&singleShuntParam.pwmDutycycle1,&singleShuntParam.pwmDutycycle2);
+#else
                 MC_CalculateSpaceVectorPhaseShifted_Assembly(&vabc,pwmPeriod,
                                                         &pwmDutycycle);
-            }
             
-            PWMDutyCycleSet(&pwmDutycycle);
+                PWMDutyCycleSet(&pwmDutycycle);
 #endif
+            }
                 
         }
     }
@@ -592,6 +587,11 @@ void CalculateParkAngle(void)
             uGF.bits.ChangeMode = 1;
             uGF.bits.Startup = 0;
         }
+    }
+    else
+    {
+        /* Angle calculated from the Encoder */
+        thetaElectrical = encoder.theta_ele - encoder.theta_offset;
     }
 }
 // *****************************************************************************

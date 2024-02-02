@@ -253,6 +253,12 @@ void ClearPWMPCIFaultInverterA(void)
     PG4FPCILbits.SWTERM = 1;
 }
 
+void PWMDutyCycleSetLocking(void)
+{
+    INVERTERA_PWM_PDC3 = 10;
+    INVERTERA_PWM_PDC2 = 500;
+    INVERTERA_PWM_PDC1 = 500;
+}
 void PWMDutyCycleSet(MC_DUTYCYCLEOUT_T *pPwmDutycycle)
 {
     pwmDutyCycleLimitCheck(pPwmDutycycle,(DDEADTIME>>1),(LOOPTIME_TCY - (DDEADTIME>>1)));  

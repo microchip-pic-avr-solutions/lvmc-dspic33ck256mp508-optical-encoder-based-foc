@@ -75,8 +75,6 @@ typedef struct
     uint16_t  theta_diff;
     /*Speed measured from encoder in RPM*/
     int16_t speed;
-    /*Speed measured in per unit*/
-    int16_t speed_pu;
     /*State variable of low pass filter for timer count */
     int32_t speedStateVar;
     /*Low pass filter output*/

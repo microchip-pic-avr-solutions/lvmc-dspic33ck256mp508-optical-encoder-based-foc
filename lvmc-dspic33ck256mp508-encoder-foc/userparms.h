@@ -71,14 +71,9 @@ controllers, tuning mode will disable the speed PI controller */
     
 /* Motor's number of pole pairs */
 #define NOPOLESPAIRS             5
-/* Base speed of the motor in RPM*/
-#define BASE_SPEED_RPM           5000
 /* Nominal speed of the motor in RPM */
 #define NOMINAL_SPEED_RPM        2800 
-#define NOMINAL_SPEED_PU         NORM_SPEED(NOMINAL_SPEED_RPM, BASE_SPEED_RPM)
-/* Maximum speed of the motor in RPM - given by the motor's manufacturer */
-#define MAXIMUM_SPEED_RPM        3500 
-#define MAXIMUN_SPEED_PU         NORM_SPEED(MAXIMUM_SPEED_RPM, BASE_SPEED_RPM)
+    
 /* Encoder counts per mechanical rotation (encoder resolution)*/
 #define QEI_COUNT_PER_MECH_REVOLUTION       1000
 
@@ -88,8 +83,6 @@ controllers, tuning mode will disable the speed PI controller */
 
 /* current transformation macro, used below */
 #define NORM_CURRENT(current_real)    (Q15(current_real/NORM_CURRENT_CONST/32768))
-/* speed transformation macro, used below */
-#define NORM_SPEED(real,base)         (Q15((float)real/(float)base))
     
 /* Startup constants */
 /* The following values depends on the PWM frequency,

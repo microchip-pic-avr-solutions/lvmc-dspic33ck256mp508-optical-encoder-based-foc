@@ -80,8 +80,6 @@ void calc_Encoder_Angle_Speed(void)
                 (int32_t)encoder.speedFilter)*(int16_t)(encoder.speedKFilter));
     encoder.speedFilter = (int16_t)(encoder.speedStateVar>>15);
     
-    encoder.speed_pu = (int16_t)(__builtin_divsd(encoder.speedStateVar, BASE_SPEED_RPM));
-    
     encoder.theta_mec_buf[encoder.buffer_Idx] = encoder.theta_mec;
     if(encoder.buffer_Idx < (DELAY_SAMPLES-1))
     {
