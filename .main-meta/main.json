@@ -10,15 +10,15 @@
       "shortDescription":"Optical Encoder Based FOC for PMSM using dsPIC33CK LVMC Board",
       "ide":{
          "name":"MPLABX",
-         "semverRange":">=6.15"
+         "semverRange":">=6.20"
       },
       "compiler":{
-         "name":"XC16",
-         "semverRange":"^2.10"
+         "name":"XC-DSC",
+         "semverRange":"^3.00"
       },
       "dfp":{
          "name":"dsPIC33CK-MP_DFP",
-         "semverRange":">=1.12.354"
+         "semverRange":">=1.13.366"
       },
 	  "configurator": {
          "name": "MCC",
