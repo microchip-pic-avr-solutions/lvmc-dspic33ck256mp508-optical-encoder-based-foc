@@ -72,7 +72,7 @@ controllers, tuning mode will disable the speed PI controller */
 /* Motor's number of pole pairs */
 #define NOPOLESPAIRS             5
 /* Nominal speed of the motor in RPM */
-#define NOMINAL_SPEED_RPM        2800       5
+#define NOMINAL_SPEED_RPM        2800      
 /* Nominal speed of the motor in RPM */
 #define MAXIMUM_SPEED_RPM        3500 
     
