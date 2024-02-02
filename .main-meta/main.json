@@ -13,7 +13,7 @@
          "semverRange":">=6.20"
       },
       "compiler":{
-         "name":"XC-DSC",
+         "name":"XCDSC",
          "semverRange":"^3.00"
       },
       "dfp":{
