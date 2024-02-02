@@ -55,7 +55,7 @@ extern "C" {
  
 /* Definition for torque mode - for a separate tuning of the current PI
 controllers, tuning mode will disable the speed PI controller */
-#undef TORQUE_MODE
+#undef TORQUE_MODE    
 /* FOC with single shunt is enabled */
 /* undef to work with dual Shunt  */    
 #undef SINGLE_SHUNT     
@@ -72,7 +72,9 @@ controllers, tuning mode will disable the speed PI controller */
 /* Motor's number of pole pairs */
 #define NOPOLESPAIRS             5
 /* Nominal speed of the motor in RPM */
-#define NOMINAL_SPEED_RPM        2800 
+#define NOMINAL_SPEED_RPM        2800       5
+/* Nominal speed of the motor in RPM */
+#define MAXIMUM_SPEED_RPM        3500 
     
 /* Encoder counts per mechanical rotation (encoder resolution)*/
 #define QEI_COUNT_PER_MECH_REVOLUTION       1000

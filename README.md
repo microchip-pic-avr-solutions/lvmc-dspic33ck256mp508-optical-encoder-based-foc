@@ -18,9 +18,9 @@ To clone or download this application firmware on GitHub,
 >In this document, hereinafter this firmware package is referred as **firmware.**
 ### 2.2 Software Tools Used for Testing the firmware
 
-- MPLAB® X IDE **v6.15** 
-- DFP: **dsPIC33CK-MP_DFP v1.12.354**
-- MPLAB® XC16 Compiler **v2.10**
+- MPLAB® X IDE **v6.20** 
+- DFP: **dsPIC33CK-MP_DFP v1.13.366**
+- MPLAB® XC-DSC Compiler **v3.00**
 - MPLAB® X IDE Plugin: **X2C-Scope v1.6.6** 
 > **Note:** </br>
 >The software used for testing the firmware prior to release is listed above. It is recommended to use the version listed above or later versions for building the firmware.
@@ -83,13 +83,13 @@ This section describes hardware setup required for the demonstration.
     <br />
 
 ## 4. SOFTWARE SETUP AND RUN
-### 4.1 Setup: MPLAB X IDE and MPLAB XC16 Compiler
-Install **MPLAB X IDE** and **MPLAB XC16 Compiler** versions that support the device **dsPIC33CK256MP508** and **PKOBv4.** The MPLAB X IDE, MPLAB XC16 Compiler, and X2C-Scope plug-in used for testing the firmware are mentioned in the [Motor Control Application Firmware Required for the Demonstration](#21-motor-control-application-firmware-required-for-the-demonstration) section. 
+### 4.1 Setup: MPLAB X IDE and MPLAB XC-DSC Compiler
+Install **MPLAB X IDE** and **MPLAB XC-DSC Compiler** versions that support the device **dsPIC33CK256MP508** and **PKOBv4.** The MPLAB X IDE, MPLAB XC-DSC Compiler, and X2C-Scope plug-in used for testing the firmware are mentioned in the [Motor Control Application Firmware Required for the Demonstration](#21-motor-control-application-firmware-required-for-the-demonstration) section. 
 
 To get help on  
 
-- MPLAB X IDE installation, refer [link](https://microchipdeveloper.com/mplabx:installation)
-- MPLAB XC16 Compiler installation steps, refer [link](https://microchipdeveloper.com/xc16:installation)
+- MPLAB X IDE installation, refer [link](https://microchipdeveloper.com/xwiki/bin/view/software-tools/x/install-guide/)
+- MPLAB XC-DSC Compiler installation steps, refer [link](https://microchipdeveloper.com/xwiki/bin/view/software-tools/xc-dsc/install/)
 
 If MPLAB IDE v8 or earlier is already installed on your computer, then run the MPLAB driver switcher (Installed when MPLAB®X IDE is installed) to switch from MPLAB IDE v8 drivers to MPLAB X IDE drivers. If you have Windows 8 or 10, you must run the MPLAB driver switcher in **Administrator Mode**. To run the Device Driver Switcher GUI application as administrator, right-click on the executable (or desktop icon) and select **Run as Administrator**. For more details, refer to the MPLAB X IDE help topic **“Before You Begin: Install the USB Device Drivers (For Hardware Tools): USB Driver Installation for Windows Operating Systems.”**
 
@@ -120,23 +120,28 @@ Follow the below instructions, step by step, to set up and run the motor control
      <img  src="images/ideprojectsetup.png"></p>
 	
 3. Open <code>**userparms.h** </code> (**pmsm.X > Header Files**) in the project **pmsm.X.**  
-     - Ensure that the macros **<code>OPEN_LOOP_FUNCTIONING</code>** and **<code>TORQUE_MODE</code>** is not defined in the header file<code> **userparms.h.**</code>
+     - Ensure that the macros **<code>TORQUE_MODE</code>** and **<code>SINGLE_SHUNT</code>** is not defined in the header file<code> **userparms.h.**</code>
           <p align="left"><img  src="images/configParam.png"></p>
 
      - The internal amplifiers are used for current amplification (referred to as **internal op-amp configuration**), **define** the macro <code>**INTERNAL_OPAMP_CONFIG**</code> in <code>**userparms.h.**</code>
           <p align="left"> <img  src="images/internalopampconfig.png"></p>
+
+     > **Note:**</br>
+     >The motor phase currents can be reconstructed from the DC Bus current by appropriately sampling it during the PWM switching period, called a single-shunt reconstruction algorithm. The firmware can be configured to demonstrate **the single shunt reconstruction algorithm** by defining the macro <code>**SINGLE_SHUNT**</code> in the header file <code>**userparms.h**</code> 
+     >For additional information, refer to Microchip application note **AN1299, “Single-Shunt Three-Phase Current Reconstruction Algorithm for Sensorless FOC of a PMSM.”**
+     >By default, the firmware uses phase currents measured across the phase shunt resistors on two of the half-bridges of the three-phase inverter (**‘dual shunt configuration’**) to implement FOC.
 
 4. Right-click on the project **pmsm.X** and select **Properties** to open its **Project Properties** Dialog. Click the **Conf:[default]** category to reveal the general project configuration information. The development tools used for testing the firmware are listed in section [2.2 Software Tools Used for Testing the firmware.](#22-software-tools-used-for-testing-the-firmware).
 
      In the **Conf:[default]** category window: 
      - Ensure the selected **Device** is **dsPIC33CK256MP508.**
      - Select the **Connected Hardware Tool** to be used for programming and debugging. 
-     - Select the specific Device Family Pack (DFP) from the available list of **Packs.** In this case, **dsPIC33CK-MP_DFP 1.12.354** is selected. 
-     - Select the specific **Compiler Toolchain** from the available list of **XC16** compilers. 
-     In this case, **XC16(v2.10)** is selected.
+     - Select the specific Device Family Pack (DFP) from the available list of **Packs.** In this case, **dsPIC33CK-MP_DFP 1.13.366** is selected. 
+     - Select the specific **Compiler Toolchain** from the available list of **XC-DSC** compilers. 
+     In this case, **XC-DSC(v3.00)** is selected.
      - After selecting Hardware Tool and Compiler Toolchain, Device Pack, click the button **Apply**
 
-     Please ensure that the selected MPLAB® XC16 Compiler and Device Pack support the device configured in the firmware
+     Please ensure that the selected MPLAB® XC-DSC Compiler and Device Pack support the device configured in the firmware
 
      <p align="left">
      <img  src="images/projectpropertiessettings.png"></p>
@@ -145,6 +150,16 @@ Follow the below instructions, step by step, to set up and run the motor control
         
       <p align="left">
       <img  src="images/loadvariables.png"></p>
+
+    Also, go to **Tools > Options** and
+           
+      <p align="left">
+      <img  src="images/tools_options.png"></p>
+      
+    ensure in the  **Embedded > Generic Settings** tab **ELF debug session symbol load methodology (MIPS/ARM)** is selected as **Pre-procesed (Legacy)** from the drop down.
+           
+      <p align="left">
+      <img  src="images/embedded_legacy.png"></p>
 
 6. To build the project (in this case, **pmsm_hall.X**) and program the device dsPIC33CK256MP508, click **Make and Program Device Main project** on the toolbar
     <p align="left">
@@ -161,11 +176,13 @@ Follow the below instructions, step by step, to set up and run the motor control
     <p align="left">
     <img  src="images/potentiometer.png"></p>
 
+10. Press the push button **SW2** to change the motor direction.    
+
 11. Press the push button **SW1** to stop the motor.
 
 
 >**Note:**</br>
->The macros <code>END_SPEED_RPM</code>, <code>NOMINAL_SPEED_RPM</code>, and <code>MAXIMUM_SPEED_RPM</code> are specified in the header file <code>**userparms.h**</code> included in the project **pmsm.X.** The macros <code>NOMINAL_SPEED_RPM</code> and <code>MAXIMUM_SPEED_RPM</code> are defined as per the Motor manufacturer’s specifications. Exceeding manufacture specifications may damage the motor or the board or both.
+>The macros <code>NOMINAL_SPEED_RPM</code>, and <code>MAXIMUM_SPEED_RPM</code> are specified in the header file <code>**userparms.h**</code> included in the project **pmsm.X.** The macros <code>NOMINAL_SPEED_RPM</code> and <code>MAXIMUM_SPEED_RPM</code> are defined as per the Motor manufacturer’s specifications. Exceeding manufacture specifications may damage the motor or the board or both.
 
 ## 5.3  Data visualization through X2C-Scope Plug-in of MPLAB X
 
@@ -229,14 +246,15 @@ To view data plots continuously, uncheck **Single-shot.** When **Single-shot** i
 ## REFERENCES:
 For additional information, refer following documents or links.
 
-1.	[dsPIC33CK Low-Voltage Motor Control Development Board (DM330031) User's Guide](https://ww1.microchip.com/downloads/aemDocuments/documents/MCU16/ProductDocuments/UserGuides/DS50002927a.pdf) 
-2.	dsPIC33CK256MP508 Family datasheet [(DS70005349)](https://ww1.microchip.com/downloads/en/DeviceDoc/dsPIC33CK256MP508-Family-Data-Sheet-DS70005349H.pdf).
-3.	[Family Reference manuals (FRM) of dsPIC33CK256MP508 family](https://www.microchip.com/en-us/product/dsPIC33CK256MP508#document-table)
-4.	MPLAB® X IDE User’s Guide [(DS50002027)](https://ww1.microchip.com/downloads/en/DeviceDoc/50002027D.pdf) or MPLAB® X IDE help 
-5.	[MPLAB® X IDE installation](http://microchipdeveloper.com/mplabx:installation)
-6.	[MPLAB® XC16 Compiler installation](http://microchipdeveloper.com/xc16:installation)
-7. [Installation and setup of X2Cscope plugin for MPLAB X](https://x2cscope.github.io/docs/MPLABX_Plugin.html)
-
+1.  [MATLAB-Simulink model for Optical Encoder Based FOC using LVMC.](https://mplab-discover.microchip.com/v2/item/com.microchip.code.examples/com.microchip.matlab.project/com.microchip.subcategories.modules-and-peripherals.analog.adc-modules.adc/com.microchip.matlab.project.matlab-lvmc-dspic33ck256mp508-foc-opticalencoder/1.0.1?view=about)
+2.	[dsPIC33CK Low-Voltage Motor Control Development Board (DM330031) User's Guide](https://ww1.microchip.com/downloads/aemDocuments/documents/MCU16/ProductDocuments/UserGuides/DS50002927a.pdf) 
+3.	dsPIC33CK256MP508 Family datasheet [(DS70005349)](https://ww1.microchip.com/downloads/en/DeviceDoc/dsPIC33CK256MP508-Family-Data-Sheet-DS70005349H.pdf).
+4.	[Family Reference manuals (FRM) of dsPIC33CK256MP508 family](https://www.microchip.com/en-us/product/dsPIC33CK256MP508#document-table)
+5.	MPLAB® X IDE User’s Guide [(DS50002027)](https://ww1.microchip.com/downloads/en/DeviceDoc/50002027D.pdf) or MPLAB® X IDE help 
+6. MPLAB® X IDE User’s Guide [(DS50002027)](https://ww1.microchip.com/downloads/en/DeviceDoc/50002027E.pdf) or [MPLAB® X IDE help](https://microchipdeveloper.com/xwiki/bin/view/software-tools/x/)
+7. [MPLAB® X IDE installation](https://microchipdeveloper.com/xwiki/bin/view/software-tools/x/install-guide/)
+8. [MPLAB® XC-DSC Compiler installation](https://microchipdeveloper.com/xwiki/bin/view/software-tools/xc-dsc/install/)
+9. [Installation and setup of X2Cscope plugin for MPLAB X](https://x2cscope.github.io/docs/MPLABX_Plugin.html)
 
 
 
