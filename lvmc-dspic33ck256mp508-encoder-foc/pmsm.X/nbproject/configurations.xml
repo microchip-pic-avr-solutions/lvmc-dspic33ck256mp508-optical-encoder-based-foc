@@ -19,24 +19,22 @@
         <itemPath>../hal/cmp.h</itemPath>
         <itemPath>../hal/qei.h</itemPath>
       </logicalFolder>
-      <logicalFolder name="library" displayName="library" projectFiles="true">
-        <logicalFolder name="library-motor"
-                       displayName="library-motor"
-                       projectFiles="true">
-          <itemPath>../library/library-motor/motor_control.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_declarations.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_dsp.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_inline_declarations.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_inline_dspic.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_inline_internal.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_types.h</itemPath>
-          <itemPath>../library/library-motor/motor_control_util.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="library-x2cscope"
-                       displayName="library-x2cscope"
-                       projectFiles="true">
-          <itemPath>../library/library-x2cscope/X2CScope.h</itemPath>
-        </logicalFolder>
+      <logicalFolder name="library-motor"
+                     displayName="library-motor"
+                     projectFiles="true">
+        <itemPath>../library/library-motor/motor_control.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_declarations.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_dsp.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_inline_declarations.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_inline_dspic.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_inline_internal.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_types.h</itemPath>
+        <itemPath>../library/library-motor/motor_control_util.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="library-x2cscope"
+                     displayName="library-x2cscope"
+                     projectFiles="true">
+        <itemPath>../library/library-x2cscope/X2CScope.h</itemPath>
       </logicalFolder>
       <itemPath>../control.h</itemPath>
       <itemPath>../general.h</itemPath>
@@ -88,7 +86,7 @@
         <targetDevice>dsPIC33CK256MP508</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>pkob4hybrid</platformTool>
+        <platformTool>noID</platformTool>
         <languageToolchain>XCDSC</languageToolchain>
         <languageToolchainVersion>3.00</languageToolchainVersion>
         <platform>3</platform>
@@ -203,7 +201,7 @@
         <property key="enable-handles" value="true"/>
         <property key="enable-pack-data" value="true"/>
         <property key="extra-lib-directories"
-                  value="..\library;..\library\library-motor;..\library\library-x2cscope"/>
+                  value="..\library\library-motor;..\library\library-x2cscope"/>
         <property key="fill-flash-options-addr" value=""/>
         <property key="fill-flash-options-const" value=""/>
         <property key="fill-flash-options-how" value="0"/>
